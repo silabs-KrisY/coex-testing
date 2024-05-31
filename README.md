@@ -214,7 +214,7 @@ STD packet send time: 20 ms
 
 You can see these throughput packets highlighted in pink in the packet trace shown below. You can also see a few other packets being generated, although only the two gray "Route Record" traces are unicast packets in the same direction (Node=0x2A7F to Gateway=0x0000).
 
-![packet trace showing throughput packets][images/throughput%20library%20trace.png)
+![packet trace showing throughput packets](images/throughput%20library%20trace.png)
 
 ### Using Diagnostic Counters to Measure Coexistence Performance
 
