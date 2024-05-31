@@ -210,6 +210,7 @@ Max packet send time: 60 ms
 Avg packet send time: 20 ms
 
 STD packet send time: 20 ms
+```
 
 ### Using Diagnostic Counters to Measure Coexistence Performance
 
