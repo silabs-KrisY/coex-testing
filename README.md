@@ -251,4 +251,200 @@ On the Gateway, counter #32 (CCA Failures) is also a critical counter for coexis
 
 ## Bluetooth
 
-TBD...
+The [BLEtest utility](https://github.com/silabs-KrisY/BLEtest) can be used to perform simple coexistence testing of BLE. This is an NCP host application, so to run a test between two BLEtest nodes you need two NCP-connected hosts, one acting as a peripheral and one acting as the central. The peripheral will be advertising and the central will connect to it. You will only enable coexistence on one of the units (whichever unit you are testing).
+
+### Bluetooth NCP Setup
+
+You will need to add the Coexistence plugin to the Bluetooth NCP. Make sure the pins are configured properly for your hardware. Also, please follow the instructions in the [BLEtest readme](https://github.com/silabs-KrisY/BLEtest/README.md) to properly configure the NCP firmware components for BLEtest advertising and scanning capabilities.
+
+
+### Bluetooth Peripheral
+
+On the peripheral side, all you have to do is advertise:
+``` 
+BLEtest -u /dev/tty.usbmodem0004400606161 --adv
+ 
+------------------------
+Waiting for boot pkt...
+ 
+boot pkt rcvd: gecko_evt_system_boot(4, 1, 0, 273, 0x       0, 257)
+MAC address: 60:A4:23:A0:75:22
+ 
+Starting advertisements at period = 100ms
+Attempted power setting of 5.0 dBm, actual setting 5.1 dBm
+Press 'control-c' to end...
+```
+If the peripheral node is running on your coexistence platform, enable coexistence by adding the "--coex" parameter to the command line and also add "-l4" for additional statistics and logging.
+
+### Bluetooth Central
+
+On the central, you can connect to the advertising device (using its MAC address which was printed to the console after running "BLEtest --adv") via the following example:
+```
+BLEtest -u /dev/tty.usbmodem0004401457921 --conn=60:A4:23:A0:75:22
+ 
+------------------------
+Waiting for boot pkt...
+ 
+boot pkt rcvd: gecko_evt_system_boot(4, 1, 0, 273, 0x       0, 257)
+MAC address: 60:A4:23:A0:74:F9
+Initiating connection as central with connection interval=20.000000 ms to MAC 60:A4:23:A0:75:22
+Attempted power setting of 5.0 dBm, actual setting 5.1 dBm
+Connection opened.
+[I] PHY update procedure completed, new phy = 0x1
+Connection RSSI=-14 dBm
+[I] PHY update procedure completed, new phy = 0x1
+```
+If the central is running on your coexistence platform, enable coexistence by adding the "--coex" parameter to the command line and also add "-l4" for additional statistics and logging.
+
+Note that this will simply establish a connection between the two devices, and they will exchange empty "keep alive" packets to maintain the connection. If you add "--throughput 1" to the parameters, the central will push dummy throughput data to the peripheral, targeting 25kbps throughput, and will print periodic reports regarding the actual throughput.
+
+### Example of Coex Peripheral
+
+Here's an example of the output of coexistence with BLEtest running in peripheral mode. We are using default RF power (5dBm) and default connection interval (20ms). In this case, GRANT was manipulated to force two disconnects via supervision timeout.
+
+Coex Node (Advertiser/Peripheral)
+```
+$ ./exe/BLEtest --adv -u /dev/ttyACM1 -l4 --coex
+
+------------------------
+Waiting for boot pkt...
+
+boot pkt rcvd: gecko_evt_system_boot(7, 0, 0, 171, 0x       0, 257)
+MAC address: D0:CF:5E:68:AA:8B
+[D] Attempting to enable coexistence on the target
+[D] Coexistence enabled successfully!
+
+Starting advertisements at period = 100ms
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Press 'control-c' to end...
+Connection opened.
+[D] Conn params interval=20.000000 ms, timeout: 100 ms
+[I] PHY update procedure completed, new phy = 0x1
+[D] MTU exchanged, MTU:247
+[D] Unhandled event received, event ID: 0x90600a0
+Connection RSSI=-32 dBm
+Disconnected from central
+[D] Disconnect reason:0x1008
+[D] Last connection packets TX:1231, RX:1238, CRC ERR:1, failures:8
+Started advertising.
+Connection opened.
+[D] Conn params interval=20.000000 ms, timeout: 100 ms
+[I] PHY update procedure completed, new phy = 0x1
+[D] MTU exchanged, MTU:247
+[D] Unhandled event received, event ID: 0x90600a0
+Connection RSSI=-49 dBm
+Disconnected from central
+[D] Disconnect reason:0x1008
+[D] Last connection packets TX:426, RX:430, CRC ERR:1, failures:5
+Started advertising.
+^CStopping advertisements...
+[D] Supervision timeout count: 2
+[D] coex counters loaded 24 bytes
+Coex counters: low_pri_requested=0, high_pri_requested=42760, low_pri_denied=0, high_pri_denied=36196, low_pri_tx_abort=0, high_pri_tx_abort=0
+```
+Remote Node (Central/Connection Initiator)
+```
+$ ./exe/BLEtest --conn=D0:CF:5E:68:AA:8B -u /dev/ttyACM0
+
+------------------------
+Waiting for boot pkt...
+
+boot pkt rcvd: gecko_evt_system_boot(7, 0, 0, 171, 0x       0, 257)
+MAC address: D0:CF:5E:68:A8:7A
+Initiating connection as central with connection interval=20.000000 ms to MAC D0:CF:5E:68:AA:8B
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Connection opened.
+[I] PHY update procedure completed, new phy = 0x1
+Connection RSSI=-34 dBm
+Disconnected from central
+Initiating connection as central with connection interval=20.000000 ms to MAC D0:CF:5E:68:AA:8B
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Connection opened.
+[I] PHY update procedure completed, new phy = 0x1
+Connection RSSI=-33 dBm
+[I] PHY update procedure completed, new phy = 0x1
+Disconnected from central
+Initiating connection as central with connection interval=20.000000 ms to MAC D0:CF:5E:68:AA:8B
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Connection opened.
+[I] PHY update procedure completed, new phy = 0x1
+Connection RSSI=-51 dBm
+[I] PHY update procedure completed, new phy = 0x1
+Disconnected from central
+Initiating connection as central with connection interval=20.000000 ms to MAC D0:CF:5E:68:AA:8B
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+```
+
+### Example of Coex Central with Throughput (ACKed)
+
+Here's an example of the output of coexistence with BLEtest running in central mode. We are using default RF power (5dBm) and default connection interval (20ms). We are enabling throughput with ACK and are printing the throughput data in reports with a 5000ms interval. 
+
+Coex Node (Central/Connection Initiator)
+```
+$ ./exe/BLEtest --conn=D0:CF:5E:68:A8:7A -u /dev/ttyACM1 -l4 --coex --throughput 1 --report 5000
+
+------------------------
+Waiting for boot pkt...
+
+boot pkt rcvd: gecko_evt_system_boot(7, 0, 0, 171, 0x       0, 257)
+MAC address: D0:CF:5E:68:AA:8B
+[D] Attempting to enable coexistence on the target
+[D] Coexistence enabled successfully!
+Initiating connection as central with connection interval=20.000000 ms to MAC D0:CF:5E:68:A8:7A
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Connection opened.
+[D] Conn params interval=20.000000 ms, timeout: 100 ms
+[I] PHY update procedure completed, new phy = 0x1
+[D] MTU exchanged, MTU:247
+Connection RSSI=-38 dBm
+[D] Unhandled event received, event ID: 0x90600a0
+[I] PHY update procedure completed, new phy = 0x1
+[D] bletest_throughput_write_with_response_handle=0x15
+[D] bletest_throughput_write_no_response_handle=0x17
+Running throughput test with ack
+...........................................................[I] 
+Channel Map: 0x1f[4] 0xff[3] 0xff[2] 0xff[1] 0xff[0]
+[I] Throughput since last report: 23994.65 bps
+.............................................................[I] 
+Channel Map: 0x1f[4] 0xff[3] 0xff[2] 0xff[1] 0xff[0]
+[I] Throughput since last report: 24401.31 bps
+.............................................................[I] 
+Channel Map: 0x1f[4] 0xff[3] 0xff[2] 0xff[1] 0xff[0]
+[I] Throughput since last report: 24380.14 bps
+.............................................................[I] 
+Channel Map: 0x1f[4] 0xff[3] 0xff[2] 0xff[1] 0xff[0]
+[I] Throughput since last report: 24375.54 bps
+......^CDisconnecting...
+[D] sl_bt_connection_close, status=0x0
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] sl_bt_pop_event, status=0x9
+[D] Last connection packets TX:1123, RX:1120, CRC ERR:1, failures:0
+[D] Supervision timeout count: 0
+[D] coex counters loaded 24 bytes
+Coex counters: low_pri_requested=0, high_pri_requested=1126, low_pri_denied=0, high_pri_denied=0, low_pri_tx_abort=0, high_pri_tx_abort=0
+```
+
+Remote Node (Peripheral/Advertiser)
+
+```
+$./exe/BLEtest --adv -u /dev/ttyACM0
+
+------------------------
+Waiting for boot pkt...
+
+boot pkt rcvd: gecko_evt_system_boot(7, 0, 0, 171, 0x       0, 257)
+MAC address: D0:CF:5E:68:A8:7A
+
+Starting advertisements at period = 100ms
+Attempted power setting of 5.0 dBm, actual setting 4.7 dBm
+Press 'control-c' to end...
+Connection opened.
+[I] PHY update procedure completed, new phy = 0x1
+Connection RSSI=-39 dBm
+.........................................................................................................................................................................................................................................................
+```
