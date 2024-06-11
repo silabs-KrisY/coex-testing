@@ -123,22 +123,17 @@ PTA Hi Pri Tx Abrt: 0
 
 The easiest way to implement a Zigbee End Node for coexistence testing is to run an example project on the Silicon Labs Wireless Starter Kit / Wireless Pro Kit. 
 
-There are a few different test approaches for the Zigbee end node for coexistence testing. One approach is to use the Throughput Library to push a stream of data. The Throughput Library is documented in The other approach is to configure the end node as a sleepy node so that it sends periodic poll requests to its parent (i.e. the Gateway). The Throughput Library approach is good for covering worst case conditions (like a Zigbee OTA), but the "sleepy node" method more closely covers steady state use cases involving battery powered devices (door/window sensors, environmental sensors, etc.) for which increased retries has battery life implications.
+There are a few different test approaches for the Zigbee end node for coexistence testing. One approach is to use the Throughput Library to push a stream of data. The Throughput Library is documented in section 4 of [UG350: Silicon Labs Coexistence Development Kit (SLWSTK-COEXBP)](https://www.silabs.com/documents/public/user-guides/ug350-coexistence-development-kit.pdf#page=37). The Throughput Library approach is good for covering worst case conditions (like a Zigbee OTA). The other approach is to use data polls sent from the node to its parent, which more closely covers steady state use cases involving battery powered devices (door/window sensors, environmental sensors, etc.) for which increased retries has battery life implications.
 
-### Zigbee Minimal "Sleepy Node" for Coex Testing using Poll Requests
-
-1. Create the "Zigbee - SoC ZigbeeMinimal" example for your radio board.
-2. Add "Zigbee->Stack->Pro Core->Pro Leaf Stack" (Not "zigbee_pro_leaf_stack_mac_test_cmds") and accept prompt to replace Zigbee PRO Stack (Library) with Pro Leaf Stack. Configure end device poll timeout.
-3. Under the "Zigbee->Utility->Zigbee Device Config" component, change the "Primary Network Device Type" to "Sleepy End Device" and leave "Zigbee 3.0 Security".
-4. Add the "Services->Power Manager->Power Manager: No Deepsleep" component. This replaces "Power Manager: Deepsleep". We do this because we don't actually want to enter a low power mode - we are just emulating a low power node. 
-5. Add "Zigbee->Utility->End Device Support". Configure the long poll interval value to your desired interval for Poll Requests.
-6. Build and flash. Don't forget the bootloader!
-
-### Zigbee Node for Throughput Testing
+### Zigbee End Node for Throughput and Data Poll Testing
 
 1. Create the "Zigbee - SoC Light (Z3Light)" example for your radio board.
 2. Install the "Zigbee->Utility->Throughput" component.
-3. Build and flash. Don't forget the bootloader!
+3. Install "Zigbee->Stack->Pro Core->Pro Leaf Stack" (Not "zigbee_pro_leaf_stack_mac_test_cmds") and accept prompt to replace Zigbee PRO Stack (Library) with Pro Leaf Stack.
+4. Under the "Zigbee->Utility->Zigbee Device Config" component, change the "Primary Network Device Type" to "End Device" and leave "Zigbee 3.0 Security".
+5. Add "Zigbee->Utility->End Device Support". If you want to have the node automatically send poll requests, configure the long poll interval value to your desired interval for Poll Requests. If you want to send poll requests manually, set the long poll interval to a high value (like 1000 seconds).
+6. To send manual poll requests, we need to add some custom CLI code to app.c. Replace the example app.c with the [src/app.c](src/app.c) from this repo.
+7. Build and flash. Don't forget the bootloader!
 
 ### Joining the Zigbee Node to the Gateway
 
@@ -158,9 +153,26 @@ Join network complete: 0x00
 ```
 indicating the successful completion of the joining process.
 
-### Coexistence Testing using Zigbee Minimal / Poll Requests
-After joining, you can use the Simplicity Studio Network analyzer to confirm the periodic poll requests are being sent from the Zigbee Node to the Gateway. See below for what this looks like on a 3 second long poll interval with our device short address 0x0B23. Poll requests aren't encrypted, so you don't need to enter in your network key into the Network Analyzer tool to confirm this functionality.
+### Coexistence Testing using Automatic Poll Requests
+If you have configured the node to automatically send frequent poll requests, it will begin long polling shortly after joining. You can use the Simplicity Studio Network analyzer to confirm the periodic poll requests are being sent from the Zigbee Node to the Gateway. See below for what this looks like on a 3 second long poll interval with our device short address 0x0B23. Poll requests aren't encrypted, so you don't need to enter in your network key into the Network Analyzer tool to confirm this functionality.
 ![Simplicity Studio Network Analyzer trace snippet showing data requests with MAC ACKs](images/data%20requests%20on%20packet%20trace.png)
+
+### Coexistence Testing using Manual Poll Requests
+The [src/app.c](src/app.c) from this repo adds a custom cli "sendPollRequest" which sends a manual poll request to the parent. 
+
+To enable the callback to print to the console on poll request completion, use:
+```
+Z3Light> plugin end-device-support poll-completed-callback 1
+```
+
+Manually sending poll requests will look like this:
+```
+Z3Light>sendPollRequest
+emberPollForData, status: 0x00
+Poll complete, status: 0x31
+```
+
+Note that status 0x31 from the Poll complete is normal, as it is EMBER_MAC_NO_DATA and just indicates that the parent ACK for the poll request indicated that the parent had no data to send.
 
 ### Coexistence Testing using the Throughput Library
 
