@@ -29,12 +29,15 @@ For Z3Gateway, the following components are recommended:
 
 Start Z3Gateway. The gateway application will post some output, and then a `Z3Gateway>` prompt signaling it is ready for interaction.
 
-Form a new Zigbee network:
+Here's an example of forming a new Zigbee network, pan ID 0xABCD, power level 0 dBm, channel 11. Note that we always leave the network first in case a previous network has already been initialized:
 ```
 Z3Gateway> network leave
-Z3Gateway> plugin network-creator start 1
+Z3Gateway> plugin network-creator form 1 0xABCD 0 11
+NWK Creator Security: Start: 0x00
+
+Forming on ch 11, panId 0xABCD
 ```
-When this succeeds it will post `EMBER_NETWORK_UP 0x0000`.
+When this succeeds it will print `EMBER_NETWORK_UP 0x0000`.
 
 We also want to execute a command to reduce some of the unnecessary traffic (in this case, periodic MTORR broadcasts) so that we can focus on the traffic we are intentionally sending:
 
@@ -46,6 +49,8 @@ Next open the network on the gateway to join a device. You need to do this short
 ```
 Z3Gateway> plugin network-creator-security open-network
 ```
+
+Here are some links to additional documentation on the ["network-creator"](https://docs.silabs.com/zigbee/latest/zigbee-af-api/network-creator) and ["network-creator-security"](https://docs.silabs.com/zigbee/latest/zigbee-af-api/network-creator-security) plugins used in this example.
 
 ### PTA Control
 
